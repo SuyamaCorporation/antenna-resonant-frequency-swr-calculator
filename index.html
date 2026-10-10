@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Antenna Resonant Frequency &amp; SWR Calculator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen">
+  <div class="max-w-4xl mx-auto px-4 py-8">
+    <header class="mb-8">
+      <h1 class="text-3xl font-bold text-emerald-400">Antenna Resonant Frequency &amp; SWR Calculator</h1>
+      <p class="text-gray-400 mt-1">Ham radio half-wave dipole, quarter-wave vertical, and SWR analysis</p>
+    </header>
+
+    <!-- Mode Tabs -->
+    <div class="flex gap-2 mb-6" role="tablist" aria-label="Calculator modes">
+      <button id="tabDipole" role="tab" aria-selected="true" aria-controls="panelDipole"
+        class="tab-btn px-5 py-2.5 rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-emerald-700 text-white">
+        Half-Wave Dipole
+      </button>
+      <button id="tabVertical" role="tab" aria-selected="false" aria-controls="panelVertical"
+        class="tab-btn px-5 py-2.5 rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-700 text-gray-300">
+        ¼-Wave Vertical
+      </button>
+      <button id="tabSWR" role="tab" aria-selected="false" aria-controls="panelSWR"
+        class="tab-btn px-5 py-2.5 rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-700 text-gray-300">
+        SWR Calculator
+      </button>
+    </div>
+
+    <div class="space-y-6">
+      <!-- Panel A: Half-Wave Dipole -->
+      <div id="panelDipole" role="tabpanel" aria-labelledby="tabDipole">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <section class="bg-gray-900 rounded-xl p-6" aria-label="Dipole calculator input">
+            <h2 class="text-lg font-semibold text-gray-200 mb-4">Half-Wave Dipole</h2>
+            <p class="text-xs text-gray-500 mb-4">Formula: f = 143 / L MHz &nbsp;(velocity factor 0.95)</p>
+            <div class="space-y-4">
+              <div>
+                <label for="dipoleLength" class="block text-sm text-gray-400 mb-1">Physical Length (m)</label>
+                <input id="dipoleLength" type="number" value="5.0" min="0.1" max="200" step="0.01"
+                  class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  aria-label="Dipole physical length in metres" />
+              </div>
+              <div>
+                <label for="velocityFactor" class="block text-sm text-gray-400 mb-1">Velocity Factor</label>
+                <input id="velocityFactor" type="number" value="0.95" min="0.5" max="1.0" step="0.01"
+                  class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  aria-label="Velocity factor" />
+              </div>
+              <button id="calcDipole"
+                class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                aria-label="Calculate dipole resonant frequency">
+                Calculate
+              </button>
+            </div>
+          </section>
+          <section class="bg-gray-900 rounded-xl p-6" aria-label="Dipole results" aria-live="polite">
+            <h2 class="text-lg font-semibold text-gray-200 mb-4">Results</h2>
+            <div id="dipoleResults" class="space-y-3">
+              <div class="bg-gray-800 rounded-lg p-4 text-center">
+                <div class="text-xs text-gray-500 mb-1">Resonant Frequency</div>
+                <div id="dipoleFreq" class="text-3xl font-bold text-emerald-400">—</div>
+              </div>
+              <div class="bg-gray-800 rounded-lg p-4 text-center">
+                <div class="text-xs text-gray-500 mb-1">Ham Band</div>
+                <div id="dipoleBand" class="text-lg font-semibold text-gray-300">—</div>
+              </div>
+              <div class="bg-gray-800 rounded-lg p-4 text-center">
+                <div class="text-xs text-gray-500 mb-1">Each Arm Length</div>
+                <div id="dipoleArm" class="text-lg font-semibold text-gray-300">—</div>
+              </div>
+            </div>
+          </section>
+        </div>
+        <!-- Dipole Sweep Table -->
+        <section class="bg-gray-900 rounded-xl p-6 mt-6" aria-label="Dipole frequency sweep table">
+          <h2 class="text-lg font-semibold text-gray-200 mb-4">Frequency Sweep ±20% Length Variation</h2>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm" role="table">
+              <thead>
+                <tr class="text-left text-xs text-gray-500 border-b border-gray-800">
+                  <th class="pb-2 pr-4">Length (m)</th>
+                  <th class="pb-2 pr-4">Frequency (MHz)</th>
+                  <th class="pb-2 pr-4">Band</th>
+                  <th class="pb-2">Variation</th>
+                </tr>
+              </thead>
+              <tbody id="dipoleSweepBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- Panel B: Quarter-Wave Vertical -->
+      <div id="panelVertical" role="tabpanel" aria-labelledby="tabVertical" class="hidden">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <section class="bg-gray-900 rounded-xl p-6" aria-label="Vertical antenna calculator input">
+            <h2 class="text-lg font-semibold text-gray-200 mb-4">¼-Wave Vertical</h2>
+            <p class="text-xs text-gray-500 mb-4">Formula: L = 71.25 / f m</p>
+            <div class="space-y-4">
+              <div>
+                <label for="vertFreq" class="block text-sm text-gray-400 mb-1">Target Frequency (MHz)</label>
+                <input id="vertFreq" type="number" value="14.225" min="0.1" max="1300" step="0.001"
+                  class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  aria-label="Target frequency in MHz" />
+              </div>
+              <button id="calcVertical"
+                class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                aria-label="Calculate vertical antenna length">
+                Calculate
+              </button>
+            </div>
+          </section>
+          <section class="bg-gray-900 rounded-xl p-6" aria-label="Vertical antenna results" aria-live="polite">
+            <h2 class="text-lg font-semibold text-gray-200 mb-4">Results</h2>
+            <div class="space-y-3">
+              <div class="bg-gray-800 rounded-lg p-4 text-center">
+                <div class="text-xs text-gray-500 mb-1">Physical Length</div>
+                <div id="vertLength" class="text-3xl font-bold text-emerald-400">—</div>
+              </div>
+              <div class="bg-gray-800 rounded-lg p-4 text-center">
+                <div class="text-xs text-gray-500 mb-1">Length in Feet</div>
+                <div id="vertLengthFt" class="text-lg font-semibold text-gray-300">—</div>
+              </div>
+              <div class="bg-gray-800 rounded-lg p-4 text-center">
+                <div class="text-xs text-gray-500 mb-1">Ham Band</div>
+                <div id="vertBand" class="text-lg font-semibold text-gray-300">—</div>
+              </div>
+            </div>
+          </section>
+        </div>
+        <!-- Vertical Sweep Table -->
+        <section class="bg-gray-900 rounded-xl p-6 mt-6" aria-label="Vertical frequency sweep table">
+          <h2 class="text-lg font-semibold text-gray-200 mb-4">Length Sweep ±20% Frequency Variation</h2>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm" role="table">
+              <thead>
+                <tr class="text-left text-xs text-gray-500 border-b border-gray-800">
+                  <th class="pb-2 pr-4">Frequency (MHz)</th>
+                  <th class="pb-2 pr-4">Length (m)</th>
+                  <th class="pb-2 pr-4">Length (ft)</th>
+                  <th class="pb-2">Variation</th>
+                </tr>
+              </thead>
+              <tbody id="vertSweepBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- Panel C: SWR Calculator -->
+      <div id="panelSWR" role="tabpanel" aria-labelledby="tabSWR" class="hidden">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <section class="bg-gray-900 rounded-xl p-6" aria-label="SWR calculator input">
+            <h2 class="text-lg font-semibold text-gray-200 mb-4">SWR Calculator</h2>
+            <p class="text-xs text-gray-500 mb-4">SWR = Z<sub>max</sub> / Z<sub>min</sub> where Z<sub>max</sub> = max(Za, Zf), Z<sub>min</sub> = min(Za, Zf)</p>
+            <div class="space-y-4">
+              <div>
+                <label for="feedImpedance" class="block text-sm text-gray-400 mb-1">Feed-Line Impedance (Ω)</label>
+                <input id="feedImpedance" type="number" value="50" min="1" max="1000" step="1"
+                  class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  aria-label="Feed-line impedance in ohms" />
+              </div>
+              <div>
+                <label for="antennaImpedance" class="block text-sm text-gray-400 mb-1">Antenna Impedance (Ω)</label>
+                <input id="antennaImpedance" type="number" value="75" min="1" max="10000" step="1"
+                  class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  aria-label="Antenna impedance in ohms" />
+              </div>
+              <button id="calcSWR"
+                class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                aria-label="Calculate SWR">
+                Calculate SWR
+              </button>
+            </div>
+          </section>
+          <section class="bg-gray-900 rounded-xl p-6" aria-label="SWR results" aria-live="polite">
+            <h2 class="text-lg font-semibold text-gray-200 mb-4">SWR Result</h2>
+            <div class="space-y-3">
+              <div class="bg-gray-800 rounded-lg p-4 text-center">
+                <div class="text-xs text-gray-500 mb-1">SWR Ratio</div>
+                <div id="swrValue" class="text-4xl font-bold text-gray-200">—</div>
+                <div id="swrLabel" class="text-sm font-semibold mt-2">—</div>
+              </div>
+              <div class="bg-gray-800 rounded-lg p-4">
+                <div class="text-xs text-gray-500 mb-2">Power reflected</div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-gray-400">Reflection coefficient (Γ)</span>
+                  <span id="swrGamma" class="font-mono text-amber-400">—</span>
+                </div>
+                <div class="flex justify-between text-sm mt-1">
+                  <span class="text-gray-400">Power reflected (%)</span>
+                  <span id="swrPowerRef" class="font-mono text-red-400">—</span>
+                </div>
+                <div class="flex justify-between text-sm mt-1">
+                  <span class="text-gray-400">Return loss (dB)</span>
+                  <span id="swrReturnLoss" class="font-mono text-blue-400">—</span>
+                </div>
+              </div>
+              <div id="swrMeter" class="bg-gray-800 rounded-lg p-4">
+                <div class="text-xs text-gray-500 mb-2">SWR Meter</div>
+                <div class="relative h-5 bg-gray-700 rounded-full overflow-hidden">
+                  <div class="absolute inset-0 flex">
+                    <div class="flex-none w-[25%] bg-green-700 opacity-60"></div>
+                    <div class="flex-none w-[17%] bg-lime-600 opacity-60"></div>
+                    <div class="flex-none w-[25%] bg-yellow-600 opacity-60"></div>
+                    <div class="flex-none w-[33%] bg-red-700 opacity-60"></div>
+                  </div>
+                  <div id="swrMarker" class="absolute top-0 bottom-0 w-1 bg-white rounded" style="left:0;transition:left 0.4s"></div>
+                </div>
+                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>1:1</span><span>1.5</span><span>2.0</span><span>3.0</span><span>5+</span>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      // ---- Tab switching ----
+      const tabs = {
+        Dipole: document.getElementById('tabDipole'),
+        Vertical: document.getElementById('tabVertical'),
+        SWR: document.getElementById('tabSWR'),
+      };
+      const panels = {
+        Dipole: document.getElementById('panelDipole'),
+        Vertical: document.getElementById('panelVertical'),
+        SWR: document.getElementById('panelSWR'),
+      };
+
+      function activateTab(name) {
+        Object.entries(tabs).forEach(([k, btn]) => {
+          const active = k === name;
+          btn.setAttribute('aria-selected', active ? 'true' : 'false');
+          btn.className = btn.className.replace(/bg-\w+-\d+ text-\w+/g, '');
+          if (active) {
+            btn.classList.remove('bg-gray-700', 'text-gray-300');
+            btn.classList.add('bg-emerald-700', 'text-white');
+          } else {
+            btn.classList.remove('bg-emerald-700', 'text-white');
+            btn.classList.add('bg-gray-700', 'text-gray-300');
+          }
+        });
+        Object.entries(panels).forEach(([k, panel]) => {
+          panel.classList.toggle('hidden', k !== name);
+        });
+      }
+
+      tabs.Dipole.addEventListener('click', () => activateTab('Dipole'));
+      tabs.Vertical.addEventListener('click', () => activateTab('Vertical'));
+      tabs.SWR.addEventListener('click', () => activateTab('SWR'));
+
+      // ---- Ham band identification ----
+      const HAM_BANDS = [
+        { name: '160m', min: 1.8, max: 2.0 },
+        { name: '80m', min: 3.5, max: 4.0 },
+        { name: '60m', min: 5.33, max: 5.41 },
+        { name: '40m', min: 7.0, max: 7.3 },
+        { name: '30m', min: 10.1, max: 10.15 },
+        { name: '20m', min: 14.0, max: 14.35 },
+        { name: '17m', min: 18.068, max: 18.168 },
+        { name: '15m', min: 21.0, max: 21.45 },
+        { name: '12m', min: 24.89, max: 24.99 },
+        { name: '10m', min: 28.0, max: 29.7 },
+        { name: '6m', min: 50.0, max: 54.0 },
+        { name: '2m', min: 144.0, max: 148.0 },
+        { name: '70cm', min: 420.0, max: 450.0 },
+        { name: '23cm', min: 1240.0, max: 1300.0 },
+      ];
+
+      function identifyBand(freqMHz) {
+        const b = HAM_BANDS.find(b => freqMHz >= b.min && freqMHz <= b.max);
+        return b ? b.name + ' band' : 'Not a ham band (' + freqMHz.toFixed(4) + ' MHz)';
+      }
+
+      // ---- Dipole ----
+      function calcDipoleFreq(lengthM, vf) {
+        // f = 150 * vf / L  (half-wave: λ/2 = L, so λ = 2L, f = c/λ = 300/(2L) = 150/L)
+        // With velocity factor: f = 150 * vf / L
+        return (150 * vf) / lengthM;
+      }
+
+      function renderDipoleSweep(lengthM, vf) {
+        const tbody = document.getElementById('dipoleSweepBody');
+        tbody.innerHTML = '';
+        const steps = [];
+        for (let pct = -20; pct <= 20; pct += 4) {
+          steps.push(pct);
+        }
+        steps.forEach(pct => {
+          const l = lengthM * (1 + pct / 100);
+          const f = calcDipoleFreq(l, vf);
+          const band = identifyBand(f);
+          const tr = document.createElement('tr');
+          const isBase = pct === 0;
+          tr.className = `border-b border-gray-800 ${isBase ? 'bg-emerald-900 bg-opacity-30' : ''}`;
+          const cells = [
+            l.toFixed(3) + ' m',
+            f.toFixed(4) + ' MHz',
+            band,
+            pct === 0 ? 'Base' : (pct > 0 ? '+' : '') + pct + '%',
+          ];
+          cells.forEach((text, i) => {
+            const td = document.createElement('td');
+            td.className = 'py-1.5 pr-4 text-sm ' + (i === 2 ? 'text-gray-400 text-xs' : i === 1 ? 'text-emerald-300 font-mono' : '');
+            if (i === 3) td.className += ' ' + (pct < 0 ? 'text-red-400' : pct > 0 ? 'text-blue-400' : 'text-emerald-400 font-semibold');
+            td.textContent = text;
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+      }
+
+      document.getElementById('calcDipole').addEventListener('click', () => {
+        const L = parseFloat(document.getElementById('dipoleLength').value);
+        const vf = parseFloat(document.getElementById('velocityFactor').value);
+        if (!L || L <= 0 || !vf || vf <= 0) return;
+
+        const freq = calcDipoleFreq(L, vf);
+        document.getElementById('dipoleFreq').textContent = freq.toFixed(4) + ' MHz';
+        document.getElementById('dipoleBand').textContent = identifyBand(freq);
+        document.getElementById('dipoleArm').textContent = (L / 2).toFixed(3) + ' m each';
+        renderDipoleSweep(L, vf);
+      });
+
+      // ---- Vertical ----
+      function calcVertLength(freqMHz) {
+        return 71.25 / freqMHz;
+      }
+
+      function renderVertSweep(freqMHz) {
+        const tbody = document.getElementById('vertSweepBody');
+        tbody.innerHTML = '';
+        for (let pct = -20; pct <= 20; pct += 4) {
+          const f = freqMHz * (1 + pct / 100);
+          const l = calcVertLength(f);
+          const tr = document.createElement('tr');
+          const isBase = pct === 0;
+          tr.className = `border-b border-gray-800 ${isBase ? 'bg-emerald-900 bg-opacity-30' : ''}`;
+          const cells = [
+            f.toFixed(4) + ' MHz',
+            l.toFixed(3) + ' m',
+            (l * 3.28084).toFixed(2) + ' ft',
+            pct === 0 ? 'Base' : (pct > 0 ? '+' : '') + pct + '%',
+          ];
+          cells.forEach((text, i) => {
+            const td = document.createElement('td');
+            td.className = 'py-1.5 pr-4 text-sm ' + (i === 0 ? 'text-emerald-300 font-mono' : i === 1 || i === 2 ? 'text-gray-300 font-mono' : '');
+            if (i === 3) td.className += ' ' + (pct < 0 ? 'text-red-400' : pct > 0 ? 'text-blue-400' : 'text-emerald-400 font-semibold');
+            td.textContent = text;
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        }
+      }
+
+      document.getElementById('calcVertical').addEventListener('click', () => {
+        const f = parseFloat(document.getElementById('vertFreq').value);
+        if (!f || f <= 0) return;
+        const l = calcVertLength(f);
+        document.getElementById('vertLength').textContent = l.toFixed(3) + ' m';
+        document.getElementById('vertLengthFt').textContent = (l * 3.28084).toFixed(2) + ' ft';
+        document.getElementById('vertBand').textContent = identifyBand(f);
+        renderVertSweep(f);
+      });
+
+      // ---- SWR ----
+      const SWR_RATINGS = [
+        { max: 1.5, label: 'Excellent', color: 'text-green-400', bg: 'bg-green-900' },
+        { max: 2.0, label: 'Good', color: 'text-lime-400', bg: 'bg-lime-900' },
+        { max: 3.0, label: 'Acceptable', color: 'text-yellow-400', bg: 'bg-yellow-900' },
+        { max: Infinity, label: 'Poor', color: 'text-red-400', bg: 'bg-red-900' },
+      ];
+
+      function getSWRRating(swr) {
+        return SWR_RATINGS.find(r => swr <= r.max) || SWR_RATINGS[SWR_RATINGS.length - 1];
+      }
+
+      document.getElementById('calcSWR').addEventListener('click', () => {
+        const Zf = parseFloat(document.getElementById('feedImpedance').value);
+        const Za = parseFloat(document.getElementById('antennaImpedance').value);
+        if (!Zf || Zf <= 0 || !Za || Za <= 0) return;
+
+        const Zmax = Math.max(Zf, Za);
+        const Zmin = Math.min(Zf, Za);
+        const swr = Zmax / Zmin;
+        const gamma = Math.abs((Za - Zf) / (Za + Zf));
+        const powerRef = (gamma * gamma * 100);
+        const returnLoss = powerRef > 0 ? -20 * Math.log10(gamma) : Infinity;
+
+        const rating = getSWRRating(swr);
+        const swrValueEl = document.getElementById('swrValue');
+        swrValueEl.textContent = swr.toFixed(2) + ':1';
+        swrValueEl.className = `text-4xl font-bold ${rating.color}`;
+
+        const swrLabelEl = document.getElementById('swrLabel');
+        swrLabelEl.textContent = rating.label;
+        swrLabelEl.className = `text-sm font-semibold mt-2 ${rating.color}`;
+
+        document.getElementById('swrGamma').textContent = gamma.toFixed(4);
+        document.getElementById('swrPowerRef').textContent = powerRef.toFixed(1) + '%';
+        document.getElementById('swrReturnLoss').textContent = isFinite(returnLoss) ? returnLoss.toFixed(1) + ' dB' : '∞ dB';
+
+        // SWR meter marker: map SWR 1–5+ to 0–100%
+        // Scale: 1→0%, 1.5→25%, 2.0→42%, 3.0→67%, 5→100%
+        const swrToPos = (s) => {
+          if (s <= 1) return 0;
+          if (s >= 5) return 100;
+          // Log-ish scale
+          return Math.min(100, ((s - 1) / 4) * 100);
+        };
+        const pos = swrToPos(swr);
+        document.getElementById('swrMarker').style.left = pos.toFixed(1) + '%';
+      });
+
+      // Auto-trigger defaults
+      document.getElementById('calcDipole').click();
+      document.getElementById('calcVertical').click();
+      document.getElementById('calcSWR').click();
+    })();
+  </script>
+</body>
+</html>
